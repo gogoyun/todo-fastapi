@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# SQLite database
+*.db
+
+# VSCode settings
+.vscode/
+
+# MacOS
+.DS_Store
+
+# Env files
+.env
+.env.*
+
+# Python virtual environments
+venv/
+env/
+.venv/
+.python-version
+
+# Pytest cache
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+
+# Coverage reports
+htmlcov/
+.coverage
+coverage.xml
+
+# Logs
+*.log
+
+# Render build artifacts (if any)
+build/
+dist/

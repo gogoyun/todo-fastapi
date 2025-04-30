@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, constr
-from typing import Optional
+from typing import Optional, Any
 
 # 會員註冊用
 class UserCreate(BaseModel):
@@ -18,8 +18,7 @@ class UserOut(BaseModel):
     email: EmailStr
     name: str
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 # Todo 建立用
 class TodoCreate(BaseModel):
@@ -38,5 +37,9 @@ class TodoOut(BaseModel):
     description: Optional[str] = None
     owner_id: int
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
+
+class APIResponse(BaseModel):
+    code: int
+    message: str
+    data: Optional[Any] = None
