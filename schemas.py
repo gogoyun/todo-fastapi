@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr, constr
-from typing import Optional, Any
+from pydantic import BaseModel, EmailStr, constr, Field
+from typing import Optional, Any, List
 
 # 會員註冊用
 class UserCreate(BaseModel):
@@ -24,17 +24,32 @@ class UserOut(BaseModel):
 class TodoCreate(BaseModel):
     title: str
     description: Optional[str] = None
+    status: int = Field(
+        default=0,
+        description="任務狀態：0=未完成, 1=已完成",
+        ge=0,
+        le=1
+    )
 
 # Todo 更新用
 class TodoUpdate(BaseModel):
     title: str
     description: Optional[str] = None
+    status: Optional[int] = Field(
+        default=None,
+        description="任務狀態：0=未完成, 1=已完成",
+        ge=0,
+        le=1
+    )
 
 # 回傳 Todo 用
 class TodoOut(BaseModel):
     id: int
     title: str
     description: Optional[str] = None
+    status: Optional[int] = Field(
+        description="任務狀態：0=未完成, 1=已完成"
+    )
     owner_id: int
 
     model_config = {"from_attributes": True}
@@ -43,3 +58,6 @@ class APIResponse(BaseModel):
     code: int
     message: str
     data: Optional[Any] = None
+
+# 直接定義一個 Todo 陣列的 schema
+TodoCreateList = List[TodoCreate]

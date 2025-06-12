@@ -3,14 +3,27 @@ from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from auth import get_password_hash, verify_password, create_access_token, get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
 from models import Base, engine, get_db, User, Todo
-from schemas import UserCreate, UserLogin, UserOut, TodoCreate, TodoOut, TodoUpdate, APIResponse
+from schemas import UserCreate, UserLogin, UserOut, TodoCreate, TodoOut, TodoUpdate, APIResponse, TodoCreateList
 from datetime import timedelta
 from fastapi.responses import JSONResponse
 from fastapi import Request
+from fastapi.middleware.cors import CORSMiddleware
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+# 設定 CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173"
+    ],  # 允許所有來源（開發環境用）
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"]
+)
 
 # 自訂 HTTPException handler，讓錯誤也有統一格式
 @app.exception_handler(HTTPException)
@@ -56,15 +69,21 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     }
 
 @app.post("/todos", response_model=APIResponse)
-def create_todo(todo: TodoCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    new_todo = Todo(title=todo.title, description=todo.description, owner_id=current_user.id)
-    db.add(new_todo)
+def create_todos(todos: TodoCreateList, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    new_todos = []
+    for todo in todos:
+        new_todo = Todo(title=todo.title, description=todo.description, owner_id=current_user.id)
+        db.add(new_todo)
+        new_todos.append(new_todo)
+    
     db.commit()
-    db.refresh(new_todo)
+    for todo in new_todos:
+        db.refresh(todo)
+    
     return {
         "code": 200,
         "message": "建立成功",
-        "data": TodoOut.model_validate(new_todo)
+        "data": [TodoOut.model_validate(todo) for todo in new_todos]
     }
 
 @app.get("/todos", response_model=APIResponse)
