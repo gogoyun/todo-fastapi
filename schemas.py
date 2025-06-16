@@ -61,3 +61,10 @@ class APIResponse(BaseModel):
 
 # 直接定義一個 Todo 陣列的 schema
 TodoCreateList = List[TodoCreate]
+
+class TodoStatusUpdate(BaseModel):
+    status: int = Field(
+        description="任務狀態：0=未完成, 1=已完成",
+        ge=0,
+        le=1
+    )

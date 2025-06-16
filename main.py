@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from auth import get_password_hash, verify_password, create_access_token, get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
 from models import Base, engine, get_db, User, Todo
-from schemas import UserCreate, UserLogin, UserOut, TodoCreate, TodoOut, TodoUpdate, APIResponse, TodoCreateList
+from schemas import UserCreate, UserLogin, UserOut, TodoCreate, TodoOut, TodoUpdate, APIResponse, TodoCreateList, TodoStatusUpdate
 from datetime import timedelta
 from fastapi.responses import JSONResponse
 from fastapi import Request
@@ -65,7 +65,7 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     return {
         "code": 200,
         "message": "登入成功",
-        "data": {"access_token": access_token, "token_type": "bearer"}
+        "data": {"access_token": access_token, "name": db_user.name, "token_type": "bearer"}
     }
 
 @app.post("/todos", response_model=APIResponse)
@@ -122,4 +122,25 @@ def delete_todo(todo_id: int, db: Session = Depends(get_db), current_user: User 
         "code": 200,
         "message": "刪除成功",
         "data": deleted_todo
+    }
+
+@app.patch("/todos/{todo_id}/status", response_model=APIResponse)
+def update_todo_status(
+    todo_id: int, 
+    status_update: TodoStatusUpdate, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    db_todo = db.query(Todo).filter(Todo.id == todo_id, Todo.owner_id == current_user.id).first()
+    if not db_todo:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    
+    db_todo.status = status_update.status
+    db.commit()
+    db.refresh(db_todo)
+    
+    return {
+        "code": 200,
+        "message": "狀態更新成功",
+        "data": TodoOut.model_validate(db_todo)
     }
