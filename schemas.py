@@ -33,6 +33,7 @@ class TodoCreate(BaseModel):
 
 # Todo 更新用
 class TodoUpdate(BaseModel):
+    id: int
     title: str
     description: Optional[str] = None
     status: Optional[int] = Field(
@@ -68,3 +69,6 @@ class TodoStatusUpdate(BaseModel):
         ge=0,
         le=1
     )
+
+# 直接定義一個 TodoUpdate 陣列的 schema
+TodoUpdateList = List[TodoUpdate]

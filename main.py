@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from auth import get_password_hash, verify_password, create_access_token, get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
 from models import Base, engine, get_db, User, Todo
-from schemas import UserCreate, UserLogin, UserOut, TodoCreate, TodoOut, TodoUpdate, APIResponse, TodoCreateList, TodoStatusUpdate
+from schemas import UserCreate, UserLogin, UserOut, TodoCreate, TodoOut, TodoUpdate, APIResponse, TodoCreateList, TodoStatusUpdate, TodoUpdateList
 from datetime import timedelta
 from fastapi.responses import JSONResponse
 from fastapi import Request
@@ -95,19 +95,34 @@ def read_todos(db: Session = Depends(get_db), current_user: User = Depends(get_c
         "data": [TodoOut.model_validate(todo) for todo in todos]
     }
 
-@app.put("/todos/{todo_id}", response_model=APIResponse)
-def update_todo(todo_id: int, todo: TodoUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    db_todo = db.query(Todo).filter(Todo.id == todo_id, Todo.owner_id == current_user.id).first()
-    if not db_todo:
-        raise HTTPException(status_code=404, detail="Todo not found")
-    db_todo.title = todo.title
-    db_todo.description = todo.description
+@app.put("/todos", response_model=APIResponse)
+def update_todos(
+    updates: TodoUpdateList,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    updated_todos = []
+    for todo in updates:
+        db_todo = db.query(Todo).filter(Todo.id == todo.id, Todo.owner_id == current_user.id).first()
+        if not db_todo:
+            raise HTTPException(status_code=404, detail=f"Todo with id {todo.id} not found")
+        
+        db_todo.title = todo.title
+        if todo.description is not None:
+            db_todo.description = todo.description
+        if todo.status is not None:
+            db_todo.status = todo.status
+        
+        updated_todos.append(db_todo)
+    
     db.commit()
-    db.refresh(db_todo)
+    for todo in updated_todos:
+        db.refresh(todo)
+    
     return {
         "code": 200,
         "message": "更新成功",
-        "data": TodoOut.model_validate(db_todo)
+        "data": [TodoOut.model_validate(todo) for todo in updated_todos]
     }
 
 @app.delete("/todos/{todo_id}", response_model=APIResponse)
