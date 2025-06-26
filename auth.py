@@ -5,9 +5,10 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from models import get_db, User
+from config import settings
 
-SECRET_KEY = "your_secret_key"  # 請改成更安全的字串，部署時用環境變數
-ALGORITHM = "HS256"
+SECRET_KEY = settings.secret_key
+ALGORITHM = settings.algorithm
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
