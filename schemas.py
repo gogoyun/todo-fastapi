@@ -72,3 +72,12 @@ class TodoStatusUpdate(BaseModel):
 
 # 直接定義一個 TodoUpdate 陣列的 schema
 TodoUpdateList = List[TodoUpdate]
+
+# 忘記密碼請求用
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+# 重設密碼用
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: constr(min_length=6, max_length=8)

@@ -1,9 +1,9 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from auth import get_password_hash, verify_password, create_access_token, get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
+from auth import get_password_hash, verify_password, create_access_token, get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES, create_password_reset_token, verify_reset_token, mark_token_as_used, send_reset_email
 from models import Base, engine, get_db, User, Todo
-from schemas import UserCreate, UserLogin, UserOut, TodoCreate, TodoOut, TodoUpdate, APIResponse, TodoCreateList, TodoStatusUpdate, TodoUpdateList
+from schemas import UserCreate, UserLogin, UserOut, TodoCreate, TodoOut, TodoUpdate, APIResponse, TodoCreateList, TodoStatusUpdate, TodoUpdateList, ForgotPasswordRequest, ResetPasswordRequest
 from datetime import timedelta
 from fastapi.responses import JSONResponse
 from fastapi import Request
@@ -67,6 +67,56 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
         "message": "登入成功",
         "data": {"access_token": access_token, "name": db_user.name, "token_type": "bearer"}
     }
+
+@app.post("/forgot-password", response_model=APIResponse)
+def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    try:
+        # 建立重設 token
+        token = create_password_reset_token(request.email, db)
+        
+        # 如果 token 存在 (表示用戶存在)，才發送郵件
+        if token:
+            send_reset_email(request.email, token)
+        
+        # 為了安全，無論用戶是否存在，都回傳成功的訊息
+        return {
+            "code": 200,
+            "message": "密碼重設郵件已發送",
+            "data": None
+        }
+    except Exception as e:
+        # 這裡可以記錄錯誤，但不應將詳細資訊回傳給客戶端
+        raise HTTPException(status_code=500, detail="An unexpected error occurred.")
+
+@app.post("/reset-password", response_model=APIResponse)
+def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    try:
+        # 驗證 token
+        email = verify_reset_token(request.token, db)
+        
+        # 更新用戶密碼
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # 雜湊新密碼
+        hashed_password = get_password_hash(request.new_password)
+        user.hashed_password = hashed_password
+        
+        # 標記 token 為已使用
+        mark_token_as_used(request.token, db)
+        
+        db.commit()
+        
+        return {
+            "code": 200,
+            "message": "密碼重設成功",
+            "data": None
+        }
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to reset password")
 
 @app.post("/todos", response_model=APIResponse)
 def create_todos(todos: TodoCreateList, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
