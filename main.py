@@ -210,3 +210,7 @@ def update_todo_status(
         "message": "狀態更新成功",
         "data": TodoOut.model_validate(db_todo)
     }
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
