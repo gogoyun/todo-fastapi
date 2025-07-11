@@ -211,6 +211,6 @@ def update_todo_status(
         "data": TodoOut.model_validate(db_todo)
     }
 
-@app.get("/health")
+@app.get("/health", methods=["GET", "HEAD"])
 def health_check():
     return {"status": "ok"}
